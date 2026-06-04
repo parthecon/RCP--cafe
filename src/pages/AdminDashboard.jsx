@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gamepad2, LogOut, ClipboardList, Utensils, BarChart3, QrCode, AlertCircle, Menu, X, UserCheck } from 'lucide-react';
+import { Gamepad2, LogOut, ClipboardList, Utensils, BarChart3, QrCode, AlertCircle, Menu, X, UserCheck, Volume2, VolumeX } from 'lucide-react';
 import { useOrders } from '../hooks/useOrders';
-import { signOutAdmin } from '../firebase/dbService';
+import { signOutAdmin, saveAdminPushToken } from '../firebase/dbService';
+import { messaging } from '../firebase/config';
+import { getToken } from 'firebase/messaging';
 import { 
   playNotificationSound, 
   triggerVibration, 
   requestNotificationPermission, 
-  showBrowserNotification 
+  showBrowserNotification,
+  initAudioContext,
+  isAudioSuspended
 } from '../utils/notifications';
 import OrderCard from '../components/OrderCard';
 import MenuCRUD from '../components/MenuCRUD';
@@ -21,14 +25,60 @@ export const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'menu', 'stats', 'qr'
   const [orderFilter, setOrderFilter] = useState('All'); // 'All', 'Pending', 'Preparing', 'Done'
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [audioLocked, setAudioLocked] = useState(true);
 
-  // Notification and sound tracking
+  // Notification and sound tracking refs
   const prevOrderIdsRef = useRef(new Set());
   const isFirstLoadRef = useRef(true);
 
   // Request browser notification permission on mount
   useEffect(() => {
     requestNotificationPermission();
+
+    const setupPushNotifications = async () => {
+      if (!messaging) return;
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          const token = await getToken(messaging, {
+            vapidKey: 'BBtqwJhTIqSpFLWJ84T1O2jdCgcHiUh6T7TTFfzN1_D9LHmqGDieYgf-Uoh0w4YdvA1YpYzybzEB2CZ1MD4XPaM'
+          });
+          if (token) {
+            await saveAdminPushToken(token);
+            console.log("Admin registered for background push notifications successfully.");
+          } else {
+            console.warn("FCM token generation failed.");
+          }
+        }
+      } catch (err) {
+        console.error("Failed to setup background push notifications:", err);
+      }
+    };
+    setupPushNotifications();
+
+    const checkAudio = () => {
+      setAudioLocked(isAudioSuspended());
+    };
+
+    const handleInteraction = () => {
+      initAudioContext();
+      setAudioLocked(false);
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
+
+    checkAudio();
+
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
   }, []);
 
   // Sync title badge and trigger alerts for new incoming orders
@@ -298,6 +348,20 @@ export const AdminDashboard = () => {
                     </button>
                   ))}
                 </div>
+
+                {audioLocked && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      initAudioContext();
+                      setAudioLocked(false);
+                    }}
+                    className="w-full bg-[#F7ECE6] border border-[#EFEAE4] text-[#A87C5C] px-4 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#F7ECE6]/80 transition-all cursor-pointer animate-pulse no-print"
+                  >
+                    <VolumeX className="w-4.5 h-4.5 shrink-0" />
+                    <span>Sound Alerts Muted. Tap here to enable order chime sounds!</span>
+                  </button>
+                )}
 
                 {/* Orders Feed Cards Grid */}
                 {loading ? (

@@ -261,6 +261,8 @@ export const createOrder = async (orderData) => {
   if (isFirebaseConfigured) {
     const orderRef = ref(firebaseDb, `orders/${orderId}`);
     await set(orderRef, newOrder);
+    // Send background push notification
+    sendOrderPushNotification(orderId, orderData.tableNumber, orderData.totalAmount);
     return orderId;
   } else {
     const orders = getLocalOrders();
@@ -329,5 +331,64 @@ export const subscribeToAuth = (callback) => {
     return () => {
       authListeners.delete(callback);
     };
+  }
+};
+
+// 4. Background Push Notifications Token Management & Sending
+export const saveAdminPushToken = async (token) => {
+  if (isFirebaseConfigured) {
+    const tokenRef = ref(firebaseDb, `admin_tokens/${token.replace(/[.#$/[\]]/g, '_')}`);
+    await set(tokenRef, true);
+  } else {
+    const tokens = JSON.parse(localStorage.getItem('rcp_admin_tokens') || '[]');
+    if (!tokens.includes(token)) {
+      tokens.push(token);
+      localStorage.setItem('rcp_admin_tokens', JSON.stringify(tokens));
+    }
+  }
+};
+
+export const sendOrderPushNotification = async (orderId, tableNumber, totalAmount) => {
+  if (!isFirebaseConfigured) return;
+  
+  const serverKey = import.meta.env.VITE_FIREBASE_SERVER_KEY;
+  if (!serverKey) {
+    console.warn("FCM Server Key not configured in VITE_FIREBASE_SERVER_KEY. Skipping push notification.");
+    return;
+  }
+  
+  try {
+    const tokensSnapshot = await get(ref(firebaseDb, 'admin_tokens'));
+    const tokensData = tokensSnapshot.val();
+    if (!tokensData) return;
+    
+    const tokens = Object.keys(tokensData);
+    if (tokens.length === 0) return;
+    
+    const payload = {
+      registration_ids: tokens,
+      notification: {
+        title: `🔔 New Order #${orderId}!`,
+        body: `Table ${tableNumber} has placed an order for Rs. ${totalAmount}`,
+        click_action: `${window.location.origin}/admin/dashboard`,
+        sound: 'default'
+      },
+      data: {
+        orderId: orderId,
+        tableNumber: String(tableNumber)
+      }
+    };
+    
+    await fetch('https://fcm.googleapis.com/fcm/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `key=${serverKey}`
+      },
+      body: JSON.stringify(payload)
+    });
+    console.log("Push notifications sent successfully to registered admin devices.");
+  } catch (error) {
+    console.error("Error sending push notifications:", error);
   }
 };

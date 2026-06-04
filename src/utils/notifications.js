@@ -1,7 +1,33 @@
+let audioCtx = null;
+
+// Initialize and resume AudioContext on user interaction
+export const initAudioContext = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  } catch (e) {
+    console.warn("Failed to initialize AudioContext:", e);
+  }
+  return audioCtx;
+};
+
+// Check if audio is currently suspended/uninitialized
+export const isAudioSuspended = () => {
+  if (typeof window === 'undefined') return true;
+  if (!audioCtx) return true;
+  return audioCtx.state === 'suspended';
+};
+
 // Web Audio API Sound Synthesizer (Zero-asset double-chime)
 export const playNotificationSound = () => {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = initAudioContext();
+    if (!ctx) return;
     
     // First chime note
     const osc1 = ctx.createOscillator();
