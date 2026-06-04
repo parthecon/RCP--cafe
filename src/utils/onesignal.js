@@ -21,7 +21,7 @@ export const subscribeAdmin = () => {
     try {
       // Prompt the user to subscribe for notifications
       if (OneSignal.Slidedown) {
-        await OneSignal.Slidedown.promptTrigger();
+        await OneSignal.Slidedown.prompt();
       } else if (OneSignal.showSlidedownPrompt) {
         await OneSignal.showSlidedownPrompt();
       }
