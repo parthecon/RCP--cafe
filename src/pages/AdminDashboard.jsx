@@ -5,6 +5,7 @@ import { useOrders } from '../hooks/useOrders';
 import { signOutAdmin, saveAdminPushToken } from '../firebase/dbService';
 import { messaging } from '../firebase/config';
 import { getToken } from 'firebase/messaging';
+import { subscribeAdmin } from '../utils/onesignal';
 import { 
   playNotificationSound, 
   triggerVibration, 
@@ -36,22 +37,29 @@ export const AdminDashboard = () => {
     requestNotificationPermission();
 
     const setupPushNotifications = async () => {
-      if (!messaging) return;
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          const token = await getToken(messaging, {
-            vapidKey: 'BBtqwJhTIqSpFLWJ84T1O2jdCgcHiUh6T7TTFfzN1_D9LHmqGDieYgf-Uoh0w4YdvA1YpYzybzEB2CZ1MD4XPaM'
-          });
-          if (token) {
-            await saveAdminPushToken(token);
-            console.log("Admin registered for background push notifications successfully.");
-          } else {
-            console.warn("FCM token generation failed.");
+      if (messaging) {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            const token = await getToken(messaging, {
+              vapidKey: 'BBtqwJhTIqSpFLWJ84T1O2jdCgcHiUh6T7TTFfzN1_D9LHmqGDieYgf-Uoh0w4YdvA1YpYzybzEB2CZ1MD4XPaM'
+            });
+            if (token) {
+              await saveAdminPushToken(token);
+              console.log("Admin registered for background push notifications successfully.");
+            } else {
+              console.warn("FCM token generation failed.");
+            }
           }
+        } catch (err) {
+          console.error("Failed to setup background push notifications:", err);
         }
+      }
+
+      try {
+        subscribeAdmin();
       } catch (err) {
-        console.error("Failed to setup background push notifications:", err);
+        console.error("Failed to register OneSignal Web Push subscription:", err);
       }
     };
     setupPushNotifications();

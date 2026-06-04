@@ -1,5 +1,6 @@
 import { auth as firebaseAuth, db as firebaseDb, isFirebaseConfigured } from './config';
 import { DUMMY_MENU } from './dummyData';
+import { sendOneSignalNotification } from '../utils/onesignal';
 import { 
   ref, 
   onValue, 
@@ -349,13 +350,18 @@ export const saveAdminPushToken = async (token) => {
 };
 
 export const sendOrderPushNotification = async (orderId, tableNumber, totalAmount) => {
+  // 1. Try to send via OneSignal Web Push
+  try {
+    await sendOneSignalNotification(orderId, tableNumber, totalAmount);
+  } catch (osErr) {
+    console.error("OneSignal push notification failed:", osErr);
+  }
+
+  // 2. Try to send via Firebase Cloud Messaging if configured
   if (!isFirebaseConfigured) return;
   
   const serverKey = import.meta.env.VITE_FIREBASE_SERVER_KEY;
-  if (!serverKey) {
-    console.warn("FCM Server Key not configured in VITE_FIREBASE_SERVER_KEY. Skipping push notification.");
-    return;
-  }
+  if (!serverKey) return;
   
   try {
     const tokensSnapshot = await get(ref(firebaseDb, 'admin_tokens'));
@@ -387,8 +393,8 @@ export const sendOrderPushNotification = async (orderId, tableNumber, totalAmoun
       },
       body: JSON.stringify(payload)
     });
-    console.log("Push notifications sent successfully to registered admin devices.");
+    console.log("FCM Push notification sent successfully.");
   } catch (error) {
-    console.error("Error sending push notifications:", error);
+    console.error("Error sending FCM push notification:", error);
   }
 };
