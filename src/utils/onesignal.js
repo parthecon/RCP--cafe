@@ -1,14 +1,10 @@
 export const initOneSignal = () => {
   if (typeof window === 'undefined') return;
-  const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
-  if (!appId) {
-    console.log("OneSignal App ID not configured. Running without OneSignal Push.");
-    return;
-  }
+  const appId = import.meta.env.VITE_ONESIGNAL_APP_ID || "0f980016-247d-49f5-9b24-b871b83e4bee";
   
-  window.OneSignal = window.OneSignal || [];
-  window.OneSignal.push(function() {
-    window.OneSignal.init({
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  window.OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
       appId: appId,
       allowLocalhostAsSecureOrigin: true,
       notifyButton: {
@@ -20,27 +16,34 @@ export const initOneSignal = () => {
 
 export const subscribeAdmin = () => {
   if (typeof window === 'undefined') return;
-  window.OneSignal = window.OneSignal || [];
-  window.OneSignal.push(function() {
-    // Prompt the user to subscribe for notifications
-    window.OneSignal.showSlidedownPrompt();
-    
-    // Tag this device as admin so it receives order notifications
-    if (window.OneSignal.User) {
-      window.OneSignal.User.addTag("role", "admin");
-    } else {
-      // Legacy SDK support
-      window.OneSignal.sendTag("role", "admin");
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  window.OneSignalDeferred.push(async function(OneSignal) {
+    try {
+      // Prompt the user to subscribe for notifications
+      if (OneSignal.Slidedown) {
+        await OneSignal.Slidedown.promptTrigger();
+      } else if (OneSignal.showSlidedownPrompt) {
+        await OneSignal.showSlidedownPrompt();
+      }
+      
+      // Tag this device as admin so it receives order notifications
+      if (OneSignal.User && OneSignal.User.addTag) {
+        await OneSignal.User.addTag("role", "admin");
+      } else if (OneSignal.sendTag) {
+        await OneSignal.sendTag("role", "admin");
+      }
+      console.log("Device subscribed and tagged as 'admin' in OneSignal v16.");
+    } catch (e) {
+      console.warn("Failed to subscribe admin in OneSignal:", e);
     }
-    console.log("Device subscribed and tagged as 'admin' in OneSignal.");
   });
 };
 
 export const sendOneSignalNotification = async (orderId, tableNumber, totalAmount) => {
-  const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
+  const appId = import.meta.env.VITE_ONESIGNAL_APP_ID || "0f980016-247d-49f5-9b24-b871b83e4bee";
   const restApiKey = import.meta.env.VITE_ONESIGNAL_REST_API_KEY;
   if (!appId || !restApiKey) {
-    console.log("OneSignal credentials not fully configured. Skipping push notification.");
+    console.log("OneSignal REST API Key not fully configured. Skipping push notification.");
     return;
   }
   
