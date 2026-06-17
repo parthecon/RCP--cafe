@@ -658,7 +658,7 @@ export const MenuCRUD = () => {
                     setNewCategoryName('');
                     toast.success('Category added successfully');
                   } catch (err) {
-                    toast.error('Failed to add category');
+                    toast.error(err.message || 'Failed to add category');
                   }
                 }}
                 className="px-4 py-2.5 bg-[#3C2F2F] hover:bg-[#4E3629] text-white font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all cursor-pointer"
@@ -680,11 +680,11 @@ export const MenuCRUD = () => {
                           await deleteCategory(cat);
                           toast.success('Category deleted');
                         } catch (err) {
-                          toast.error('Failed to delete category');
+                          toast.error(err.message || 'Failed to delete category');
                         }
                       }
                     }}
-                    className="text-red-500 hover:text-red-650 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                    className="text-red-500 hover:text-red-655 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

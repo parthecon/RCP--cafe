@@ -223,6 +223,26 @@ export const toggleMenuItemAvailability = async (id, isAvailable) => {
   }
 };
 
+// Helper to encode strings to be safe Firebase keys (escapes . # $ / [ ])
+const encodeFirebaseKey = (key) => {
+  return key
+    .replace(/%/g, '%25')
+    .replace(/\./g, '%2E')
+    .replace(/#/g, '%23')
+    .replace(/\$/g, '%24')
+    .replace(/\[/g, '%5B')
+    .replace(/\]/g, '%5D')
+    .replace(/\//g, '%2F');
+};
+
+const decodeFirebaseKey = (key) => {
+  try {
+    return decodeURIComponent(key);
+  } catch (e) {
+    return key;
+  }
+};
+
 // 1b. Category CRUD operations
 // NOTE: Firebase RTDB doesn't store true JS arrays — we use a plain object
 // with category names as keys (e.g. { Food: true, Drinks: true }) so reads
@@ -230,7 +250,7 @@ export const toggleMenuItemAvailability = async (id, isAvailable) => {
 const parseCategoriesSnapshot = (data) => {
   if (!data) return [];
   if (Array.isArray(data)) return data.filter(Boolean); // legacy fallback
-  if (typeof data === 'object') return Object.keys(data).filter(k => data[k]);
+  if (typeof data === 'object') return Object.keys(data).filter(k => data[k]).map(decodeFirebaseKey);
   return [];
 };
 
@@ -242,7 +262,7 @@ export const subscribeToCategories = (callback) => {
       if (!data) {
         // Seed default categories as keyed object
         const seed = {};
-        DEFAULT_CATEGORIES.forEach(c => { seed[c] = true; });
+        DEFAULT_CATEGORIES.forEach(c => { seed[encodeFirebaseKey(c)] = true; });
         set(categoriesRef, seed);
         callback(DEFAULT_CATEGORIES);
       } else {
@@ -264,7 +284,8 @@ export const saveCategory = async (categoryName) => {
 
   if (isFirebaseConfigured) {
     // Write a single key — no need to read-modify-write the whole list
-    const catKeyRef = ref(firebaseDb, `categories/${newCat}`);
+    const encodedCat = encodeFirebaseKey(newCat);
+    const catKeyRef = ref(firebaseDb, `categories/${encodedCat}`);
     await set(catKeyRef, true);
   } else {
     const categories = getLocalCategories();
@@ -278,7 +299,8 @@ export const saveCategory = async (categoryName) => {
 export const deleteCategory = async (categoryName) => {
   if (isFirebaseConfigured) {
     // Remove the single key
-    const catKeyRef = ref(firebaseDb, `categories/${categoryName}`);
+    const encodedCat = encodeFirebaseKey(categoryName);
+    const catKeyRef = ref(firebaseDb, `categories/${encodedCat}`);
     await remove(catKeyRef);
   } else {
     const categories = getLocalCategories();
