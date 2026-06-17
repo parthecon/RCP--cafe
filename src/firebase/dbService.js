@@ -30,7 +30,25 @@ const generateOrderId = () => {
 const STORAGE_KEYS = {
   MENU: 'rcp_menu_items',
   ORDERS: 'rcp_orders',
-  AUTH: 'rcp_admin_user'
+  AUTH: 'rcp_admin_user',
+  CATEGORIES: 'rcp_categories'
+};
+
+const DEFAULT_CATEGORIES = ['Food', 'Drinks', 'Snacks'];
+
+// Initialize Local Categories if not present
+const getLocalCategories = () => {
+  const data = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+  if (!data) {
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(DEFAULT_CATEGORIES));
+    return DEFAULT_CATEGORIES;
+  }
+  return JSON.parse(data);
+};
+
+const saveLocalCategories = (categories) => {
+  localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+  notifyCategoriesListeners();
 };
 
 // Initialize Local Menu if not present
@@ -66,6 +84,7 @@ const saveLocalOrders = (orders) => {
 const menuListeners = new Set();
 const ordersListeners = new Set();
 const authListeners = new Set();
+const categoriesListeners = new Set();
 
 const notifyMenuListeners = () => {
   const menu = getLocalMenu();
@@ -81,6 +100,11 @@ const notifyAuthListeners = (user) => {
   authListeners.forEach(cb => cb(user));
 };
 
+const notifyCategoriesListeners = () => {
+  const categories = getLocalCategories();
+  categoriesListeners.forEach(cb => cb(categories));
+};
+
 // Sync across multiple tabs in LocalStorage mode
 if (!isFirebaseConfigured) {
   window.addEventListener('storage', (e) => {
@@ -91,6 +115,8 @@ if (!isFirebaseConfigured) {
     } else if (e.key === STORAGE_KEYS.AUTH) {
       const user = e.newValue ? JSON.parse(e.newValue) : null;
       notifyAuthListeners(user);
+    } else if (e.key === STORAGE_KEYS.CATEGORIES) {
+      notifyCategoriesListeners();
     }
   });
 }
@@ -197,6 +223,70 @@ export const toggleMenuItemAvailability = async (id, isAvailable) => {
   }
 };
 
+// 1b. Category CRUD operations
+export const subscribeToCategories = (callback) => {
+  if (isFirebaseConfigured) {
+    const categoriesRef = ref(firebaseDb, 'categories');
+    return onValue(categoriesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        // Seed default categories
+        set(categoriesRef, DEFAULT_CATEGORIES);
+        callback(DEFAULT_CATEGORIES);
+      } else {
+        const categoriesArray = Array.isArray(data) 
+          ? data.filter(Boolean) 
+          : Object.values(data);
+        callback(categoriesArray);
+      }
+    });
+  } else {
+    categoriesListeners.add(callback);
+    callback(getLocalCategories());
+    return () => {
+      categoriesListeners.delete(callback);
+    };
+  }
+};
+
+export const saveCategory = async (categoryName) => {
+  if (!categoryName || !categoryName.trim()) return;
+  const newCat = categoryName.trim();
+  
+  if (isFirebaseConfigured) {
+    const categoriesRef = ref(firebaseDb, 'categories');
+    const snapshot = await get(categoriesRef);
+    const data = snapshot.val() || [];
+    const categoriesArray = Array.isArray(data) ? data.filter(Boolean) : Object.values(data);
+    
+    if (!categoriesArray.includes(newCat)) {
+      categoriesArray.push(newCat);
+      await set(categoriesRef, categoriesArray);
+    }
+  } else {
+    const categories = getLocalCategories();
+    if (!categories.includes(newCat)) {
+      categories.push(newCat);
+      saveLocalCategories(categories);
+    }
+  }
+};
+
+export const deleteCategory = async (categoryName) => {
+  if (isFirebaseConfigured) {
+    const categoriesRef = ref(firebaseDb, 'categories');
+    const snapshot = await get(categoriesRef);
+    const data = snapshot.val() || [];
+    const categoriesArray = Array.isArray(data) ? data.filter(Boolean) : Object.values(data);
+    const updated = categoriesArray.filter(c => c !== categoryName);
+    await set(categoriesRef, updated);
+  } else {
+    const categories = getLocalCategories();
+    const updated = categories.filter(c => c !== categoryName);
+    saveLocalCategories(updated);
+  }
+};
+
 // 2. Orders operations
 export const subscribeToOrders = (callback) => {
   if (isFirebaseConfigured) {
@@ -284,6 +374,19 @@ export const updateOrderStatus = async (orderId, status) => {
   }
 };
 
+export const updateOrderItems = async (orderId, items, totalAmount) => {
+  if (isFirebaseConfigured) {
+    const orderRef = ref(firebaseDb, `orders/${orderId}`);
+    await update(orderRef, { items, totalAmount, updatedAt: Date.now() });
+  } else {
+    const orders = getLocalOrders();
+    const updatedOrders = orders.map(o =>
+      o.id === orderId ? { ...o, items, totalAmount, updatedAt: Date.now() } : o
+    );
+    saveLocalOrders(updatedOrders);
+  }
+};
+
 export const deleteOrder = async (orderId) => {
   if (isFirebaseConfigured) {
     const orderRef = ref(firebaseDb, `orders/${orderId}`);
@@ -302,7 +405,7 @@ export const signInAdmin = async (email, password) => {
     return userCredential.user;
   } else {
     // Mock Authentication: check credentials
-    if (email === 'admin@rcp.com' && password === 'admin123') {
+    if ((email === 'admin@rcp.com' && password === 'admin123') || (email === 'local@rcp.com' && password === 'local123')) {
       const mockUser = { email, uid: 'mock-admin-uid-123' };
       localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(mockUser));
       notifyAuthListeners(mockUser);

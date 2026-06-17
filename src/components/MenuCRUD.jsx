@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X, Coffee, UtensilsCrossed, Cookie, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, X, Coffee, UtensilsCrossed, Cookie, Eye, EyeOff, FolderOpen } from 'lucide-react';
 import useMenu from '../hooks/useMenu';
+import { subscribeToCategories, saveCategory, deleteCategory } from '../firebase/dbService';
 import toast from 'react-hot-toast';
 
 export const MenuCRUD = () => {
@@ -8,6 +9,14 @@ export const MenuCRUD = () => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   
+  // Categories states
+  const [categories, setCategories] = useState([]);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Variants state (array of { name, price })
+  const [variants, setVariants] = useState([]);
+
   // Modal States
   const [isOpen, setIsOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(null); // null for Add, object for Edit
@@ -19,14 +28,34 @@ export const MenuCRUD = () => {
     isAvailable: true
   });
 
+  // Load categories on mount
+  useEffect(() => {
+    const unsubscribe = subscribeToCategories((cats) => {
+      setCategories(cats);
+      // Set default category to the first one available, if any
+      if (cats.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          category: prev.category && cats.includes(prev.category) ? prev.category : cats[0]
+        }));
+      }
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, []);
+
   // Delete Confirm State
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const openAddModal = () => {
     setCurrentItem(null);
+    setVariants([]);
     setFormData({
       name: '',
-      category: 'Food',
+      category: categories[0] || 'Food',
       price: '',
       description: '',
       isAvailable: true
@@ -36,6 +65,7 @@ export const MenuCRUD = () => {
 
   const openEditModal = (item) => {
     setCurrentItem(item);
+    setVariants(item.variants || []);
     setFormData({
       name: item.name,
       category: item.category,
@@ -70,7 +100,10 @@ export const MenuCRUD = () => {
       category: formData.category,
       price: parseFloat(formData.price),
       description: formData.description.trim(),
-      isAvailable: formData.isAvailable
+      isAvailable: formData.isAvailable,
+      variants: variants
+        .filter(v => v.name.trim() !== '')
+        .map(v => ({ name: v.name.trim(), price: parseFloat(v.price) || 0 }))
     };
 
     try {
@@ -153,13 +186,13 @@ export const MenuCRUD = () => {
           </div>
 
           {/* Category Filter Pills */}
-          <div className="flex bg-[#EFEAE4]/50 p-1 rounded-xl border border-[#EFEAE4] shadow-sm self-start">
-            {['All', 'Food', 'Drinks', 'Snacks'].map((cat) => (
+          <div className="flex bg-[#EFEAE4]/50 p-1 rounded-xl border border-[#EFEAE4] shadow-sm self-start overflow-x-auto max-w-full">
+            {['All', ...categories].map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setCategoryFilter(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   categoryFilter === cat 
                     ? 'bg-[#3C2F2F] text-white shadow-sm' 
                     : 'text-[#7C6C6C] hover:text-[#3C2F2F]'
@@ -171,15 +204,25 @@ export const MenuCRUD = () => {
           </div>
         </div>
 
-        {/* Add Item Button */}
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="flex items-center gap-1.5 px-5 py-2.5 bg-[#3C2F2F] hover:bg-[#4E3629] text-white font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all cursor-pointer w-full sm:w-auto justify-center min-h-[44px]"
-        >
-          <Plus className="w-4 h-4" />
-          Add Menu Item
-        </button>
+        {/* Action Buttons */}
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-[#EFEAE4] hover:bg-slate-50 text-[#3C2F2F] font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all cursor-pointer flex-1 sm:flex-initial justify-center min-h-[44px]"
+          >
+            <FolderOpen className="w-4 h-4 text-teal-655" />
+            Manage Categories
+          </button>
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="flex items-center gap-1.5 px-5 py-2.5 bg-[#3C2F2F] hover:bg-[#4E3629] text-white font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all cursor-pointer flex-1 sm:flex-initial justify-center min-h-[44px]"
+          >
+            <Plus className="w-4 h-4" />
+            Add Menu Item
+          </button>
+        </div>
       </div>
 
       {/* Grid or Table of Items */}
@@ -453,9 +496,9 @@ export const MenuCRUD = () => {
                     onChange={handleInputChange}
                     className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-teal-500 rounded-xl text-slate-850 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 transition-colors"
                   >
-                    <option value="Food">Food</option>
-                    <option value="Drinks">Drinks</option>
-                    <option value="Snacks">Snacks</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -473,6 +516,61 @@ export const MenuCRUD = () => {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Variants Section */}
+              <div className="border border-slate-100 rounded-2xl p-3 bg-slate-50/50 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Variants / Sub-options
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setVariants(prev => [...prev, { name: '', price: '' }])}
+                    className="text-xs text-teal-600 hover:text-teal-700 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Variant
+                  </button>
+                </div>
+                {variants.length > 0 && (
+                  <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                    {variants.map((v, index) => (
+                      <div key={index} className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          placeholder="Name e.g. Peri Peri"
+                          value={v.name}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setVariants(prev => prev.map((item, i) => i === index ? { ...item, name: val } : item));
+                          }}
+                          className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs"
+                          required
+                        />
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          value={v.price}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setVariants(prev => prev.map((item, i) => i === index ? { ...item, price: val } : item));
+                          }}
+                          className="w-20 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold"
+                          min="0"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setVariants(prev => prev.filter((_, i) => i !== index))}
+                          className="text-red-500 hover:text-red-650 p-1 cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -523,6 +621,76 @@ export const MenuCRUD = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Categories Modal */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white border border-slate-100 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4 animate-slide-up">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-black text-slate-900">Manage Categories</h3>
+              <button
+                type="button"
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="text-slate-450 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Add New Category */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="New Category Name..."
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                className="flex-1 px-4 py-2.5 bg-white border border-slate-200 focus:border-teal-500 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!newCategoryName.trim()) return;
+                  try {
+                    await saveCategory(newCategoryName.trim());
+                    setNewCategoryName('');
+                    toast.success('Category added successfully');
+                  } catch (err) {
+                    toast.error('Failed to add category');
+                  }
+                }}
+                className="px-4 py-2.5 bg-[#3C2F2F] hover:bg-[#4E3629] text-white font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all cursor-pointer"
+              >
+                Add
+              </button>
+            </div>
+
+            {/* Categories List */}
+            <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden bg-slate-50/50 max-h-60 overflow-y-auto">
+              {categories.map((cat) => (
+                <div key={cat} className="flex justify-between items-center px-4 py-3 bg-white">
+                  <span className="text-sm font-bold text-slate-800">{cat}</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm(`Are you sure you want to delete category "${cat}"? This will not affect items under it but will remove it from the filters.`)) {
+                        try {
+                          await deleteCategory(cat);
+                          toast.success('Category deleted');
+                        } catch (err) {
+                          toast.error('Failed to delete category');
+                        }
+                      }
+                    }}
+                    className="text-red-500 hover:text-red-650 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

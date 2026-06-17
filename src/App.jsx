@@ -6,13 +6,14 @@ import ReceiptPage from './pages/ReceiptPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import { generateTableSignature } from './utils/security';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Redirect Root to Order Page */}
-        <Route path="/" element={<Navigate to="/order?table=1" replace />} />
+        <Route path="/" element={<Navigate to={`/order?table=1&token=${generateTableSignature(1)}`} replace />} />
         
         {/* Customer Facing */}
         <Route path="/order" element={<OrderPage />} />

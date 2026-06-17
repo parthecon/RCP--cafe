@@ -184,14 +184,21 @@ export const ReceiptPage = () => {
           <div className="space-y-3">
             <span className="block text-[10px] text-[#7C6C6C] uppercase font-bold tracking-wider mb-2">Itemized Order</span>
             
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {order.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center text-sm text-[#3C2F2F]">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[#7C6C6C] text-xs">{item.quantity}x</span>
-                    <span className="text-[#3C2F2F] font-medium">{item.name}</span>
+                <div key={idx} className="border-b border-slate-50 pb-1.5 last:border-b-0">
+                  <div className="flex justify-between items-center text-sm text-[#3C2F2F]">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[#7C6C6C] text-xs">{item.quantity}x</span>
+                      <span className="text-[#3C2F2F] font-medium">{item.name}</span>
+                    </div>
+                    <span className="text-[#3C2F2F] font-mono text-xs font-bold">Rs. {item.price * item.quantity}</span>
                   </div>
-                  <span className="text-[#3C2F2F] font-mono text-xs font-bold">Rs. {item.price * item.quantity}</span>
+                  {item.remark && (
+                    <div className="text-[10px] text-orange-655 italic mt-0.5 ml-6">
+                      Note: {item.remark}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

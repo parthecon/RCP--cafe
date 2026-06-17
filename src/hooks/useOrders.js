@@ -4,6 +4,7 @@ import {
   subscribeToOrder, 
   createOrder, 
   updateOrderStatus, 
+  updateOrderItems,
   deleteOrder as apiDeleteOrder 
 } from '../firebase/dbService';
 
@@ -59,12 +60,23 @@ export const useOrders = () => {
     }
   };
 
+  const updateItems = async (orderId, items, totalAmount) => {
+    try {
+      await updateOrderItems(orderId, items, totalAmount);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+      throw err;
+    }
+  };
+
   return {
     orders,
     loading,
     error,
     addOrder,
     updateStatus,
+    updateItems,
     deleteOrder
   };
 };

@@ -15,6 +15,7 @@ const firebaseConfig = {
 
 // Check if Firebase is configured (i.e. not using placeholders)
 export const isFirebaseConfigured = 
+  import.meta.env.VITE_USE_MOCK_DB !== 'true' &&
   !!firebaseConfig.apiKey && 
   firebaseConfig.apiKey !== '' && 
   !firebaseConfig.apiKey.includes('YOUR_') &&

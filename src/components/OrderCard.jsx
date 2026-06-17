@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, CheckCircle2, Play, Trash2, User, Hash, ArrowLeft } from 'lucide-react';
+import { Clock, CheckCircle2, Play, Trash2, User, Hash, ArrowLeft, Pencil } from 'lucide-react';
 
-export const OrderCard = ({ order, onUpdateStatus, onDelete }) => {
+export const OrderCard = ({ order, onUpdateStatus, onDelete, onEdit }) => {
   const { id, customerName, tableNumber, items, totalAmount, status, createdAt } = order;
 
   const [timeAgo, setTimeAgo] = useState('');
@@ -173,14 +173,25 @@ export const OrderCard = ({ order, onUpdateStatus, onDelete }) => {
           {/* Ordered Items */}
           <div className="space-y-2 mb-5">
             {items.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center text-sm border-b border-slate-50 pb-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-slate-800 font-mono text-xs px-1.5 py-0.5 bg-slate-50 rounded border border-slate-100">
-                    {item.quantity}x
-                  </span>
-                  <span className="text-slate-655 font-medium">{item.name}</span>
+              <div key={idx} className="border-b border-slate-50 pb-2">
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-slate-800 font-mono text-xs px-1.5 py-0.5 bg-slate-50 rounded border border-slate-100">
+                      {item.quantity}x
+                    </span>
+                    <span className="text-slate-655 font-medium">{item.name}</span>
+                  </div>
+                  <span className="text-slate-800 font-mono text-xs font-bold">Rs. {item.price * item.quantity}</span>
                 </div>
-                <span className="text-slate-800 font-mono text-xs font-bold">Rs. {item.price * item.quantity}</span>
+                {item.remark && (
+                  <div className="mt-2 flex items-start gap-2 bg-orange-50 border-l-4 border-orange-400 rounded-r-xl px-3 py-2">
+                    <span className="text-base leading-none mt-0.5">👨‍🍳</span>
+                    <div>
+                      <p className="text-[10px] font-extrabold text-orange-600 uppercase tracking-wider mb-0.5">Cooking Note</p>
+                      <p className="text-xs font-bold text-orange-800 leading-snug">{item.remark}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -212,6 +223,17 @@ export const OrderCard = ({ order, onUpdateStatus, onDelete }) => {
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Complete Order
+              </button>
+            )}
+            {/* Edit button — always visible on desktop, shown beside delete */}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(order)}
+                className="hidden sm:inline-flex p-2.5 items-center justify-center rounded-xl bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-600 transition-all border border-blue-100 hover:border-blue-200 min-w-[44px] min-h-[44px] cursor-pointer"
+                title="Edit Order Items"
+              >
+                <Pencil className="w-4 h-4" />
               </button>
             )}
             {!isSwiped && (

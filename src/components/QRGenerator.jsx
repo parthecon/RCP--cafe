@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Download, Printer, Settings, Minus, Plus } from 'lucide-react';
+import { generateTableSignature } from '../utils/security';
 import toast from 'react-hot-toast';
 
 export const QRGenerator = () => {
@@ -111,7 +112,7 @@ export const QRGenerator = () => {
       {/* QR Code Cards Grid (2-column on mobile, 4-column on desktop) */}
       <div className="no-print grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {tables.map((tableNum) => {
-          const qrUrl = `${window.location.origin}/order?table=${tableNum}`;
+          const qrUrl = `${window.location.origin}/order?table=${tableNum}&token=${generateTableSignature(tableNum)}`;
           return (
             <div
               key={tableNum}
@@ -157,7 +158,7 @@ export const QRGenerator = () => {
         
         <div className="print-grid grid grid-cols-2 gap-8">
           {tables.map((tableNum) => {
-            const qrUrl = `${window.location.origin}/order?table=${tableNum}`;
+            const qrUrl = `${window.location.origin}/order?table=${tableNum}&token=${generateTableSignature(tableNum)}`;
             return (
               <div key={tableNum} className="border-2 border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center break-inside-avoid page-break-inside-avoid">
                 <h3 className="text-lg font-black text-slate-800 mb-4">TABLE {tableNum}</h3>

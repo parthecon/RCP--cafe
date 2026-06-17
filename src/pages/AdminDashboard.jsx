@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gamepad2, LogOut, ClipboardList, Utensils, BarChart3, QrCode, AlertCircle, Menu, X, UserCheck, Volume2, VolumeX } from 'lucide-react';
+import { Gamepad2, LogOut, ClipboardList, Utensils, BarChart3, QrCode, AlertCircle, Menu, X, UserCheck, Volume2, VolumeX, PlusCircle } from 'lucide-react';
 import { useOrders } from '../hooks/useOrders';
 import { signOutAdmin, saveAdminPushToken } from '../firebase/dbService';
 import { messaging } from '../firebase/config';
@@ -18,15 +18,19 @@ import OrderCard from '../components/OrderCard';
 import MenuCRUD from '../components/MenuCRUD';
 import SummaryStats from '../components/SummaryStats';
 import QRGenerator from '../components/QRGenerator';
+import AdminOrderModal from '../components/AdminOrderModal';
+import EditOrderModal from '../components/EditOrderModal';
 import toast from 'react-hot-toast';
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { orders, loading, error, updateStatus, deleteOrder } = useOrders();
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'menu', 'stats', 'qr'
-  const [orderFilter, setOrderFilter] = useState('All'); // 'All', 'Pending', 'Preparing', 'Done'
+  const { orders, loading, error, updateStatus, deleteOrder, addOrder, updateItems } = useOrders();
+  const [activeTab, setActiveTab] = useState('orders');
+  const [orderFilter, setOrderFilter] = useState('All');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [audioLocked, setAudioLocked] = useState(true);
+  const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null); // order object being edited
 
   // Notification and sound tracking refs
   const prevOrderIdsRef = useRef(new Set());
@@ -164,6 +168,25 @@ export const AdminDashboard = () => {
       } catch (err) {
         toast.error('Failed to delete order');
       }
+    }
+  };
+
+  const handleNewOrder = async (orderData) => {
+    try {
+      await addOrder(orderData);
+    } catch (err) {
+      toast.error(err.message || 'Failed to place order');
+      throw err;
+    }
+  };
+
+  const handleUpdateItems = async (orderId, items, totalAmount) => {
+    try {
+      await updateItems(orderId, items, totalAmount);
+      toast.success('Order updated!');
+    } catch (err) {
+      toast.error('Failed to update order');
+      throw err;
     }
   };
 
@@ -327,6 +350,7 @@ export const AdminDashboard = () => {
             {activeTab === 'orders' && (
               <div className="space-y-6">
                 
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 {/* Status Sub-Filters tab bar */}
                 <div className="grid grid-cols-4 sm:flex bg-white p-1 rounded-xl border border-[#EFEAE4] shadow-sm w-full sm:w-auto gap-1 self-stretch sm:self-start no-print">
                   {[
@@ -356,6 +380,17 @@ export const AdminDashboard = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* + New Order CTA */}
+                <button
+                  type="button"
+                  onClick={() => setIsNewOrderOpen(true)}
+                  className="no-print flex items-center justify-center gap-2 px-4 py-2.5 bg-[#3C2F2F] hover:bg-[#4E3629] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer min-h-[40px]"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  New Order
+                </button>
+              </div>
 
                 {audioLocked && (
                   <button
@@ -393,6 +428,7 @@ export const AdminDashboard = () => {
                         order={order}
                         onUpdateStatus={handleUpdateStatus}
                         onDelete={handleDeleteOrder}
+                        onEdit={(o) => setEditingOrder(o)}
                       />
                     ))}
                   </div>
@@ -411,6 +447,23 @@ export const AdminDashboard = () => {
         </main>
         
       </div>
+
+      {/* New Order Modal */}
+      {isNewOrderOpen && (
+        <AdminOrderModal
+          onClose={() => setIsNewOrderOpen(false)}
+          onSubmit={handleNewOrder}
+        />
+      )}
+
+      {/* Edit Order Modal */}
+      {editingOrder && (
+        <EditOrderModal
+          order={editingOrder}
+          onClose={() => setEditingOrder(null)}
+          onSave={handleUpdateItems}
+        />
+      )}
     </div>
   );
 };
