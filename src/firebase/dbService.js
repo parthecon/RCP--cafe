@@ -23,15 +23,15 @@ const generateOrderId = () => {
   for (let i = 0; i < 4; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return `RCP-${result}`;
+  return `ORDER-${result}`;
 };
 
 // --- LOCAL STORAGE MOCK DATABASE (Fallback) ---
 const STORAGE_KEYS = {
-  MENU: 'rcp_menu_items',
-  ORDERS: 'rcp_orders',
-  AUTH: 'rcp_admin_user',
-  CATEGORIES: 'rcp_categories'
+  MENU: 'cafe_menu_items',
+  ORDERS: 'cafe_orders',
+  AUTH: 'cafe_admin_user',
+  CATEGORIES: 'cafe_categories'
 };
 
 const DEFAULT_CATEGORIES = ['Food', 'Drinks', 'Snacks'];
@@ -224,20 +224,29 @@ export const toggleMenuItemAvailability = async (id, isAvailable) => {
 };
 
 // 1b. Category CRUD operations
+// NOTE: Firebase RTDB doesn't store true JS arrays — we use a plain object
+// with category names as keys (e.g. { Food: true, Drinks: true }) so reads
+// and writes are always consistent across SDK versions.
+const parseCategoriesSnapshot = (data) => {
+  if (!data) return [];
+  if (Array.isArray(data)) return data.filter(Boolean); // legacy fallback
+  if (typeof data === 'object') return Object.keys(data).filter(k => data[k]);
+  return [];
+};
+
 export const subscribeToCategories = (callback) => {
   if (isFirebaseConfigured) {
     const categoriesRef = ref(firebaseDb, 'categories');
     return onValue(categoriesRef, (snapshot) => {
       const data = snapshot.val();
       if (!data) {
-        // Seed default categories
-        set(categoriesRef, DEFAULT_CATEGORIES);
+        // Seed default categories as keyed object
+        const seed = {};
+        DEFAULT_CATEGORIES.forEach(c => { seed[c] = true; });
+        set(categoriesRef, seed);
         callback(DEFAULT_CATEGORIES);
       } else {
-        const categoriesArray = Array.isArray(data) 
-          ? data.filter(Boolean) 
-          : Object.values(data);
-        callback(categoriesArray);
+        callback(parseCategoriesSnapshot(data));
       }
     });
   } else {
@@ -252,17 +261,11 @@ export const subscribeToCategories = (callback) => {
 export const saveCategory = async (categoryName) => {
   if (!categoryName || !categoryName.trim()) return;
   const newCat = categoryName.trim();
-  
+
   if (isFirebaseConfigured) {
-    const categoriesRef = ref(firebaseDb, 'categories');
-    const snapshot = await get(categoriesRef);
-    const data = snapshot.val() || [];
-    const categoriesArray = Array.isArray(data) ? data.filter(Boolean) : Object.values(data);
-    
-    if (!categoriesArray.includes(newCat)) {
-      categoriesArray.push(newCat);
-      await set(categoriesRef, categoriesArray);
-    }
+    // Write a single key — no need to read-modify-write the whole list
+    const catKeyRef = ref(firebaseDb, `categories/${newCat}`);
+    await set(catKeyRef, true);
   } else {
     const categories = getLocalCategories();
     if (!categories.includes(newCat)) {
@@ -274,12 +277,9 @@ export const saveCategory = async (categoryName) => {
 
 export const deleteCategory = async (categoryName) => {
   if (isFirebaseConfigured) {
-    const categoriesRef = ref(firebaseDb, 'categories');
-    const snapshot = await get(categoriesRef);
-    const data = snapshot.val() || [];
-    const categoriesArray = Array.isArray(data) ? data.filter(Boolean) : Object.values(data);
-    const updated = categoriesArray.filter(c => c !== categoryName);
-    await set(categoriesRef, updated);
+    // Remove the single key
+    const catKeyRef = ref(firebaseDb, `categories/${categoryName}`);
+    await remove(catKeyRef);
   } else {
     const categories = getLocalCategories();
     const updated = categories.filter(c => c !== categoryName);
@@ -444,10 +444,10 @@ export const saveAdminPushToken = async (token) => {
     const tokenRef = ref(firebaseDb, `admin_tokens/${token.replace(/[.#$/[\]]/g, '_')}`);
     await set(tokenRef, true);
   } else {
-    const tokens = JSON.parse(localStorage.getItem('rcp_admin_tokens') || '[]');
+    const tokens = JSON.parse(localStorage.getItem('cafe_admin_tokens') || '[]');
     if (!tokens.includes(token)) {
       tokens.push(token);
-      localStorage.setItem('rcp_admin_tokens', JSON.stringify(tokens));
+      localStorage.setItem('cafe_admin_tokens', JSON.stringify(tokens));
     }
   }
 };

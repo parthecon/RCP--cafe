@@ -208,13 +208,13 @@ export const OrderPage = () => {
             <div className="text-left">
               <div className="flex items-center gap-1.5">
                 <h1 className="text-sm sm:text-base font-black tracking-wide text-[#3C2F2F] font-sans">
-                  RCP Cafe
+                  Cafe
                 </h1>
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-bold bg-green-50 text-green-700 border border-green-100">
                   Online
                 </span>
               </div>
-              <p className="text-[9px] text-[#7C6C6C] font-semibold tracking-wider">Cyber Paradise</p>
+              <p className="text-[9px] text-[#7C6C6C] font-semibold tracking-wider">Order System</p>
             </div>
           </div>
 

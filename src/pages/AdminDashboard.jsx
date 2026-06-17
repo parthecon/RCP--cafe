@@ -102,9 +102,9 @@ export const AdminDashboard = () => {
     // 1. Dynamic Tab Title Badge
     const pendingCount = pendingOrders.length;
     if (pendingCount > 0) {
-      document.title = `(❌ ${pendingCount}) RCP Dashboard`;
+      document.title = `(❌ ${pendingCount}) Cafe Dashboard`;
     } else {
-      document.title = 'RCP Dashboard';
+      document.title = 'Cafe Dashboard';
     }
 
     // 2. Alert for New Orders
@@ -253,9 +253,9 @@ export const AdminDashboard = () => {
               </div>
               <div className="text-left">
                 <span className="block text-sm font-black tracking-widest text-[#3C2F2F] uppercase font-sans">
-                  RCP CAFE
+                  CAFE
                 </span>
-                <span className="block text-[9px] text-[#7C6C6C] font-bold uppercase tracking-widest leading-none">Cyber Paradise</span>
+                <span className="block text-[9px] text-[#7C6C6C] font-bold uppercase tracking-widest leading-none">Dashboard</span>
               </div>
             </div>
 
@@ -305,7 +305,7 @@ export const AdminDashboard = () => {
             <UserCheck className="w-5 h-5" />
           </div>
           <div className="text-left overflow-hidden">
-            <span className="block text-xs font-black text-[#3C2F2F] uppercase truncate">Rajeshwar Admin</span>
+            <span className="block text-xs font-black text-[#3C2F2F] uppercase truncate">Cafe Admin</span>
             <span className="block text-[10px] text-[#7C6C6C] truncate">admin@rcp.com</span>
           </div>
         </div>

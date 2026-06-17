@@ -6,12 +6,12 @@ import toast from 'react-hot-toast';
 
 export const QRGenerator = () => {
   const [tableCount, setTableCount] = useState(() => {
-    const saved = localStorage.getItem('rcp_table_count');
+    const saved = localStorage.getItem('cafe_table_count');
     return saved ? parseInt(saved, 10) : 10;
   });
 
   useEffect(() => {
-    localStorage.setItem('rcp_table_count', tableCount.toString());
+    localStorage.setItem('cafe_table_count', tableCount.toString());
   }, [tableCount]);
 
   const handleDownload = (tableNum) => {
@@ -46,7 +46,7 @@ export const QRGenerator = () => {
       const url = tempCanvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
-      a.download = `RCP_Table_${tableNum}_QR.png`;
+      a.download = `Cafe_Table_${tableNum}_QR.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -152,7 +152,7 @@ export const QRGenerator = () => {
       {/* Print-Only Layout */}
       <div className="print-only hidden">
         <div className="text-center mb-8 border-b-2 border-slate-300 pb-4">
-          <h1 className="text-2xl font-black text-slate-900 tracking-wider">RAJESHWAR CYBER PARADISE</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-wider">CAFE MENU</h1>
           <p className="text-xs text-slate-550 mt-1 uppercase font-bold tracking-widest">Table QR Code Sheet</p>
         </div>
         

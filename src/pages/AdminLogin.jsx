@@ -58,7 +58,7 @@ export const AdminLogin = () => {
             <Gamepad2 className="w-8 h-8" />
           </div>
           <h1 className="text-xl font-black tracking-wider bg-gradient-to-r from-[#3C2F2F] to-[#5D4037] bg-clip-text text-transparent">
-            RCP Cyber Cafe
+            Cafe Admin
           </h1>
           <p className="text-xs text-[#7C6C6C] font-semibold uppercase tracking-widest mt-1">Admin Portal</p>
         </div>

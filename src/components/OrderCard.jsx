@@ -225,12 +225,12 @@ export const OrderCard = ({ order, onUpdateStatus, onDelete, onEdit }) => {
                 Complete Order
               </button>
             )}
-            {/* Edit button — always visible on desktop, shown beside delete */}
+            {/* Edit button — visible on ALL screen sizes */}
             {onEdit && (
               <button
                 type="button"
                 onClick={() => onEdit(order)}
-                className="hidden sm:inline-flex p-2.5 items-center justify-center rounded-xl bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-600 transition-all border border-blue-100 hover:border-blue-200 min-w-[44px] min-h-[44px] cursor-pointer"
+                className="inline-flex p-2.5 items-center justify-center rounded-xl bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-600 transition-all border border-blue-100 hover:border-blue-200 min-w-[44px] min-h-[44px] cursor-pointer"
                 title="Edit Order Items"
               >
                 <Pencil className="w-4 h-4" />

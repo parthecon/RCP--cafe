@@ -50,8 +50,8 @@ export const ReceiptPage = () => {
     if (!order) return;
     
     const shareData = {
-      title: 'Rajeshwar Cyber Paradise Receipt',
-      text: `Hey, here is my receipt from Rajeshwar Cyber Paradise (Table ${order.tableNumber})! Total: Rs. ${order.totalAmount}`,
+      title: 'Cafe Receipt',
+      text: `Hey, here is my receipt from Cafe (Table ${order.tableNumber})! Total: Rs. ${order.totalAmount}`,
       url: window.location.href
     };
 
@@ -153,7 +153,7 @@ export const ReceiptPage = () => {
           
           <div className="flex justify-center items-center gap-2 mb-1.5 text-[#3C2F2F]">
             <Gamepad2 className="w-5 h-5 text-[#A87C5C]" />
-            <h1 className="text-lg font-black tracking-wider uppercase font-sans text-[#3C2F2F]">RCP Cafe</h1>
+            <h1 className="text-lg font-black tracking-wider uppercase font-sans text-[#3C2F2F]">Cafe</h1>
           </div>
           <p className="text-[10px] text-[#7C6C6C] uppercase tracking-widest font-extrabold">Food & Drinks Receipt</p>
         </div>
@@ -228,7 +228,7 @@ export const ReceiptPage = () => {
           {/* Thank You Note */}
           <div className="text-center py-2">
             <p className="text-xs text-[#7C6C6C] italic">
-              Thank you for ordering at Rajeshwar Cyber Paradise!
+              Thank you for ordering!
             </p>
             <p className="text-[10px] text-[#7C6C6C] mt-1">
               Please present this receipt screen or printout to the counter.
